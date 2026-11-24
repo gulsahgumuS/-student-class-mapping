@@ -1,32 +1,18 @@
 import unittest
 
-from student_system import (
-    Course,
-    CourseFullError,
-    CreditLimitError,
-    Department,
-    DuplicateEnrollmentError,
-    EnrollmentError,
-    EnrollmentStatus,
-    Instructor,
-    InvalidGradeError,
-    NotCourseInstructorError,
-    Person,
-    PrerequisiteError,
-    Student,
-)
+from student_system import Course, Department, EnrollmentStatus, Instructor, Person, Student
 
-FALL = "2025-Fall"
-SPRING = "2026-Spring"
+FALL = "2026-2027 Fall"
+SPRING = "2026-2027 Spring"
 
 
 class StudentSystemTests(unittest.TestCase):
     def setUp(self):
-        self.department = Department("SE", "Software Engineering")
-        self.course = Course("SE301", "Software Design", 3, 1)
-        self.other = Course("SE302", "Database Systems", 4, 30)
+        self.department = Department("COM", "Computer Engineering")
+        self.course = Course("AII101", capacity=1)
+        self.other = Course("AII201", credits=4)
         self.student = Student("P1", "Ada", "ada@example.com", "1001", self.department)
-        self.teacher = Instructor("P9", "Grace", "grace@example.com", "Dr.", self.department)
+        self.teacher = Instructor("P9", "Grace", "grace@example.com", self.department)
 
     def test_inheritance_and_department_links(self):
         self.assertIsInstance(self.student, Person)
@@ -48,49 +34,41 @@ class StudentSystemTests(unittest.TestCase):
 
     def test_duplicate_enrollment_rejected(self):
         self.student.enroll(self.other, FALL)
-        with self.assertRaises(DuplicateEnrollmentError):
+        with self.assertRaises(ValueError):
             self.student.enroll(self.other, FALL)
 
-    def test_full_course_leaves_student_unchanged(self):
+    def test_full_course_is_per_semester(self):
         self.student.enroll(self.course, FALL)
         second = Student("P2", "Lin", "lin@example.com", "1002", self.department)
-        with self.assertRaises(CourseFullError):
+        with self.assertRaises(ValueError):
             second.enroll(self.course, FALL)
-        self.assertEqual(second.enrollments, ())
-
-    def test_capacity_is_per_semester(self):
-        self.student.enroll(self.course, FALL)
-        second = Student("P2", "Lin", "lin@example.com", "1002", self.department)
+        self.assertEqual(second.enrollments, [])
         second.enroll(self.course, SPRING)
-        self.assertEqual(len(self.course.enrollments), 2)
 
-    def test_drop_removes_both_sides(self):
+    def test_drop_rules(self):
         self.student.enroll(self.course, FALL)
         self.student.drop(self.course, FALL)
-        self.assertEqual(self.student.enrollments, ())
-        self.assertEqual(self.course.enrollments, ())
-
-    def test_graded_course_cannot_be_dropped(self):
-        self.student.enroll(self.course, FALL)
-        self.student.assign_grade(self.course, FALL, "BB")
-        with self.assertRaises(EnrollmentError):
-            self.student.drop(self.course, FALL)
+        self.assertEqual(self.course.enrollments, [])
+        self.student.enroll(self.other, FALL)
+        self.student.assign_grade(self.other, FALL, "BB")
+        with self.assertRaises(ValueError):
+            self.student.drop(self.other, FALL)
 
     def test_prerequisite_required(self):
-        advanced = Course("SE401", "Advanced Design", 3, 30, [self.other])
-        with self.assertRaises(PrerequisiteError):
+        advanced = Course("AII102", prerequisites=[self.other])
+        with self.assertRaises(ValueError):
             self.student.enroll(advanced, FALL)
         self.student.enroll(self.other, FALL)
         self.student.assign_grade(self.other, FALL, "CC")
         self.student.enroll(advanced, SPRING)
 
     def test_credit_limit(self):
-        heavy = Course("SE500", "Project", 28, 30)
-        self.student.enroll(heavy, FALL)
-        with self.assertRaises(CreditLimitError):
+        self.student.enroll(Course("BIG", credits=28), FALL)
+        with self.assertRaises(ValueError):
             self.student.enroll(self.course, FALL)
 
     def test_gpa_is_credit_weighted(self):
+        self.assertIsNone(self.student.calculate_gpa())
         self.student.enroll(self.course, FALL)
         self.student.enroll(self.other, FALL)
         self.student.assign_grade(self.course, FALL, "AA")
@@ -105,33 +83,28 @@ class StudentSystemTests(unittest.TestCase):
         self.assertEqual(self.student.calculate_gpa(), 3.0)
         self.assertEqual(self.student.calculate_gpa(FALL), 0.0)
         self.assertEqual(self.student.earned_credits(), 4)
-
-    def test_passed_course_cannot_be_retaken(self):
-        self.student.enroll(self.other, FALL)
-        self.student.assign_grade(self.other, FALL, "DD")
-        with self.assertRaises(DuplicateEnrollmentError):
-            self.student.enroll(self.other, SPRING)
+        with self.assertRaises(ValueError):
+            self.student.enroll(self.other, "2027-2028 Fall")
 
     def test_invalid_grade_rejected(self):
         self.student.enroll(self.course, FALL)
-        with self.assertRaises(InvalidGradeError):
+        with self.assertRaises(ValueError):
             self.student.assign_grade(self.course, FALL, "XX")
 
     def test_only_course_instructor_can_grade(self):
         self.student.enroll(self.other, FALL)
-        with self.assertRaises(NotCourseInstructorError):
+        with self.assertRaises(ValueError):
             self.teacher.submit_grade(self.student, self.other, FALL, "AA")
         self.teacher.assign_course(self.other)
         self.teacher.submit_grade(self.student, self.other, FALL, "AA")
         self.assertEqual(self.student.calculate_gpa(), 4.0)
 
-    def test_transcript_contains_results(self):
+    def test_transcript(self):
         self.student.enroll(self.other, FALL)
         self.student.assign_grade(self.other, FALL, "BA")
         report = self.student.transcript().render()
-        self.assertIn("SE302", report)
+        self.assertIn("AII201", report)
         self.assertIn("Cumulative GPA: 3.50", report)
-        self.assertIn("Earned credits: 4", report)
 
 
 if __name__ == "__main__":

@@ -1,21 +1,11 @@
-from student_system import Course, Department, EnrollmentError, Instructor, Student
-
-COURSE_CODE = "AII003"
-COURSE_TITLE = "Software Engineering"
-INSTRUCTOR_NAME = "Priscilla Olawale"
-
-STUDENT_NAME = "Gülşah Gümüş"
-STUDENT_NUMBER = "20221903"
+from student_system import Course, Department, Instructor, Student
 
 FALL = "2026-2027 Fall"
 SPRING = "2026-2027 Spring"
 
-# Credits and capacity are model values, not official course data.
-DEFAULT_CREDITS = 3
-DEFAULT_CAPACITY = 30
-
+# Credits are model values, not official course data.
 CURRENT_COURSES = [
-    (COURSE_CODE, COURSE_TITLE),
+    ("AII003", "Software Engineering"),
     ("AII409", "Object-Oriented Programming II"),
     ("AII415", "Decision Making"),
     ("AII463", "Image Processing"),
@@ -24,61 +14,38 @@ CURRENT_COURSES = [
 ]
 
 
-def show_current_courses(department: Department) -> None:
-    instructor = Instructor(
-        "P100", INSTRUCTOR_NAME, "instructor@example.com", "Instructor", department
-    )
-    student = Student("P001", STUDENT_NAME, "student@example.com", STUDENT_NUMBER, department)
+def main() -> None:
+    print("AII003 | Software Engineering | Priscilla Olawale\n")
+    department = Department("COM", "Computer Engineering")
 
+    # Real student and current courses (no grades yet)
+    me = Student("P001", "Gülşah Gümüş", "student@example.com", "20221903", department)
     for code, title in CURRENT_COURSES:
-        course = Course(code, title, DEFAULT_CREDITS, DEFAULT_CAPACITY)
+        course = Course(code, title)
         department.add_course(course)
-        if code == COURSE_CODE:
-            instructor.assign_course(course)
-        student.enroll(course, FALL)
+        me.enroll(course, FALL)
+    print(me.transcript().render())
 
-    print(student.transcript().render())
-
-
-def show_sample_rules(department: Department) -> None:
-    """Demonstrates grades and rules with fictional data."""
-    print("\n--- Sample scenario (fictional student, courses, and grades) ---\n")
-
-    instructor = Instructor(
-        "P200", "Sample Instructor", "sample.instructor@example.com", "Instructor", department
-    )
-    student = Student("P002", "Sample Student", "sample@example.com", "00000000", department)
-    basics = Course("DEMO101", "Sample Basics", 4, DEFAULT_CAPACITY)
-    elective = Course("DEMO102", "Sample Elective", 4, DEFAULT_CAPACITY)
-    advanced = Course("DEMO201", "Sample Advanced", 4, DEFAULT_CAPACITY, [basics])
-
-    for course in (basics, elective, advanced):
+    # Sample scenario: fictional student and grades, AII101 -> AII102 prerequisite
+    print("\n--- Sample scenario (fictional student and grades) ---\n")
+    teacher = Instructor("P100", "Sample Instructor", "instructor@example.com", department)
+    sample = Student("P002", "Sample Student", "sample@example.com", "00000000", department)
+    aii101 = Course("AII101")
+    aii102 = Course("AII102", prerequisites=[aii101])
+    for course in (aii101, aii102):
         department.add_course(course)
-        instructor.assign_course(course)
+        teacher.assign_course(course)
 
     try:
-        student.enroll(advanced, FALL)
-    except EnrollmentError as error:
+        sample.enroll(aii102, FALL)
+    except ValueError as error:
         print(f"Enrollment rejected: {error}\n")
 
-    student.enroll(basics, FALL)
-    student.enroll(elective, FALL)
-    instructor.submit_grade(student, basics, FALL, "BA")
-    instructor.submit_grade(student, elective, FALL, "FF")
-
-    student.enroll(advanced, SPRING)
-    student.enroll(elective, SPRING)
-    instructor.submit_grade(student, advanced, SPRING, "AA")
-    instructor.submit_grade(student, elective, SPRING, "BB")
-
-    print(student.transcript().render())
-
-
-def main() -> None:
-    print(f"{COURSE_CODE} | {COURSE_TITLE} | {INSTRUCTOR_NAME}\n")
-    department = Department("COM", "Computer Engineering")
-    show_current_courses(department)
-    show_sample_rules(department)
+    sample.enroll(aii101, FALL)
+    teacher.submit_grade(sample, aii101, FALL, "BA")
+    sample.enroll(aii102, SPRING)
+    teacher.submit_grade(sample, aii102, SPRING, "AA")
+    print(sample.transcript().render())
 
 
 if __name__ == "__main__":

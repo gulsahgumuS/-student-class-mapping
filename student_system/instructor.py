@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .exceptions import NotCourseInstructorError
 from .person import Person
 
 if TYPE_CHECKING:
@@ -14,18 +13,11 @@ if TYPE_CHECKING:
 
 
 class Instructor(Person):
-    def __init__(
-        self, person_id: str, name: str, email: str, title: str, department: Department
-    ) -> None:
+    def __init__(self, person_id: str, name: str, email: str, department: Department) -> None:
         super().__init__(person_id, name, email)
-        self.title = title
         self.department = department
-        self._courses: list[Course] = []
-        department.add_instructor(self)
-
-    @property
-    def courses(self) -> tuple[Course, ...]:
-        return tuple(self._courses)
+        self.courses: list[Course] = []
+        department.instructors.append(self)
 
     def get_role(self) -> str:
         return "Instructor"
@@ -34,10 +26,10 @@ class Instructor(Person):
         if course.instructor not in (None, self):
             raise ValueError(f"{course.code} already has an instructor")
         course.instructor = self
-        if course not in self._courses:
-            self._courses.append(course)
+        if course not in self.courses:
+            self.courses.append(course)
 
     def submit_grade(self, student: Student, course: Course, semester: str, grade: str) -> None:
         if course.instructor is not self:
-            raise NotCourseInstructorError(f"{self.name} does not teach {course.code}")
+            raise ValueError(f"{self.name} does not teach {course.code}")
         student.assign_grade(course, semester, grade)

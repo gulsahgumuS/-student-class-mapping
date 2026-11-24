@@ -28,15 +28,12 @@ classDiagram
         +transcript() Transcript
     }
     class Instructor {
-        +title: str
         +assign_course(course) void
         +submit_grade(student, course, semester, grade) void
     }
     class Department {
         +code: str
         +name: str
-        +add_student(student) void
-        +add_instructor(instructor) void
         +add_course(course) void
     }
     class Course {
@@ -49,10 +46,9 @@ classDiagram
     class Enrollment {
         +semester: str
         +enrolled_on: date
-        -grade: Grade
+        +grade: Grade
         +status: EnrollmentStatus
         +assign_grade(grade) void
-        +grade_points() float
     }
     class Grade {
         <<enumeration>>
@@ -96,7 +92,7 @@ classDiagram
 | Self-association | `Course.prerequisites` |
 | Enumeration | `Grade` and `EnrollmentStatus` use `Enum` |
 | Dependency | `Student.transcript()` creates a `Transcript` |
-| Multiplicity `0..*` | `list` or `tuple` |
+| Multiplicity `0..*` | `list` |
 | Multiplicity `1` | Required constructor argument |
 
 ## Business Rules
@@ -113,8 +109,8 @@ classDiagram
 
 Requires Python 3.9 or newer. No external packages are needed.
 
-The program lists the 2026-2027 Fall courses without grades. Grades and rules are
-demonstrated in a separate scenario with fictional data. Credits and capacities are
+The program lists the 2026-2027 Fall courses without grades. A separate scenario with
+fictional grades shows the AII101 to AII102 prerequisite. Credits and capacities are
 model values, not official course data.
 
 ```bash
